@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MDV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="titlebar-drag" data-tauri-drag-region></div>
+
+  <header id="topbar">
+    <div class="topbar-left">
+      <span id="file-name" title="Untitled">Untitled</span>
+      <span id="unsaved-dot" class="hidden" title="Unsaved changes">●</span>
+    </div>
+    <div class="topbar-center">
+      <div class="view-toggle" id="view-toggle">
+        <button class="vt-btn active" data-view="source" title="Source (⌘1)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </button>
+        <button class="vt-btn" data-view="split" title="Split (⌘3)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+        </button>
+        <button class="vt-btn" data-view="preview" title="Preview (⌘2)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button id="btn-mode" class="icon-btn" title="Toggle Dark/Light (⌘⇧D)">
+        <svg id="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg id="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+      <button id="btn-settings" class="icon-btn" title="Settings (⌘,)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="workspace">
+    <div id="editor-pane" class="pane"></div>
+    <div id="divider" class="hidden"></div>
+    <div id="preview-pane" class="pane hidden">
+      <article id="preview-content" class="markdown-body"></article>
+    </div>
+  </main>
+
+  <footer id="statusbar">
+    <span id="stat-cursor">Ln 1, Col 1</span>
+    <span id="stat-words">0 words</span>
+    <span id="stat-filetype">Markdown</span>
+  </footer>
+
+  <div id="settings-overlay" class="hidden"></div>
+  <aside id="settings-panel" class="hidden">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button id="settings-close" class="icon-btn" title="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="settings-body">
+      <div class="setting-group">
+        <label class="setting-label">Theme</label>
+        <div id="theme-grid" class="theme-grid"></div>
+      </div>
+      <div class="setting-group">
+        <label class="setting-label">Font Family</label>
+        <select id="set-font" class="setting-select">
+          <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+          <option value="'IBM Plex Mono', monospace">IBM Plex Mono</option>
+          <option value="'SF Mono', 'Menlo', monospace">SF Mono</option>
+          <option value="monospace">System Mono</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label class="setting-label">Font Size <span id="font-size-val">14px</span></label>
+        <input type="range" id="set-fontsize" class="setting-range" min="10" max="24" value="14" step="1" />
+      </div>
+      <div class="setting-group">
+        <label class="setting-label">Line Height <span id="line-height-val">1.6</span></label>
+        <input type="range" id="set-lineheight" class="setting-range" min="1.2" max="2.4" value="1.6" step="0.1" />
+      </div>
+      <div class="setting-group setting-toggle-row">
+        <label class="setting-label">Line Numbers</label>
+        <label class="toggle"><input type="checkbox" id="set-linenums" checked /><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-group setting-toggle-row">
+        <label class="setting-label">Word Wrap</label>
+        <label class="toggle"><input type="checkbox" id="set-wordwrap" checked /><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-group setting-toggle-row">
+        <label class="setting-label">Auto Save</label>
+        <label class="toggle"><input type="checkbox" id="set-autosave" /><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+  </aside>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
