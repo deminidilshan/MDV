@@ -48,9 +48,18 @@
     </div>
   </main>
 
+  <!-- Drag & drop overlay -->
+  <div id="dropzone" class="dropzone">
+    <div class="dropzone-inner">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+      <p>Drop markdown file here</p>
+    </div>
+  </div>
+
   <footer id="statusbar">
     <span id="stat-cursor">Ln 1, Col 1</span>
     <span id="stat-words">0 words</span>
+    <span id="stat-readtime">1 min read</span>
     <span id="stat-filetype">Markdown</span>
   </footer>
 
@@ -95,6 +104,10 @@
       <div class="setting-group setting-toggle-row">
         <label class="setting-label">Auto Save</label>
         <label class="toggle"><input type="checkbox" id="set-autosave" /><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-group setting-toggle-row">
+        <label class="setting-label">Pro Preview ✨</label>
+        <label class="toggle"><input type="checkbox" id="set-propreview" checked /><span class="toggle-slider"></span></label>
       </div>
     </div>
   </aside>

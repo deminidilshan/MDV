@@ -323,3 +323,28 @@ body {
 
 /* Animations */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ===== DRAG & DROP OVERLAY ===== */
+.dropzone {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.dropzone.active { display: flex; pointer-events: auto; animation: fadeIn 0.2s ease; }
+.dropzone-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding: 48px 64px;
+  border: 2px dashed var(--accent);
+  border-radius: 20px;
+  color: var(--accent);
+  animation: dropzonePulse 2s ease-in-out infinite;
+}
+.dropzone-inner svg { opacity: 0.8; }
+.dropzone-inner p { font-size: 16px; font-weight: 500; letter-spacing: 0.5px; }
+@keyframes dropzonePulse {
+  0%, 100% { border-color: var(--accent); box-shadow: 0 0 20px rgba(88,166,255,0.1); }
+  50% { border-color: var(--accent-hover); box-shadow: 0 0 40px rgba(88,166,255,0.2); }
+}

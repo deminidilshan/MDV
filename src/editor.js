@@ -115,3 +115,14 @@ export function focus() {
 export function destroyEditor() {
   if (view) { view.destroy(); view = null; }
 }
+
+export function wrapSelection(before, after) {
+  if (!view) return;
+  const { from, to } = view.state.selection.main;
+  const selected = view.state.doc.sliceString(from, to);
+  view.dispatch({
+    changes: { from, to, insert: before + selected + after },
+    selection: { anchor: from + before.length, head: from + before.length + selected.length },
+  });
+  view.focus();
+}
