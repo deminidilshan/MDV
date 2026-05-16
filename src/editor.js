@@ -76,6 +76,15 @@ export function initEditor(parentEl, opts = {}) {
         const line = update.state.doc.lineAt(pos);
         onCursorCallback(line.number, pos - line.from + 1);
       }
+      if (update.selectionSet && _selectionChangeFn) {
+        const { from, to } = update.state.selection.main;
+        if (from !== to) {
+          const coords = update.view.coordsAtPos(from);
+          if (coords) _selectionChangeFn({ x: coords.left, y: coords.top, hasSelection: true });
+        } else {
+          _selectionChangeFn({ hasSelection: false });
+        }
+      }
     }),
   ];
 
@@ -126,3 +135,32 @@ export function wrapSelection(before, after) {
   });
   view.focus();
 }
+
+export function insertAtLineStart(prefix) {
+  if (!view) return;
+  const { head } = view.state.selection.main;
+  const line = view.state.doc.lineAt(head);
+  view.dispatch({
+    changes: { from: line.from, to: line.from, insert: prefix },
+  });
+  view.focus();
+}
+
+export function getSelectionCoords() {
+  if (!view) return null;
+  const { from, to } = view.state.selection.main;
+  if (from === to) return null; // no selection
+  const coords = view.coordsAtPos(from);
+  if (!coords) return null;
+  return { x: coords.left, y: coords.top };
+}
+
+export function onSelectionChange(fn) {
+  if (!view) return;
+  // We add a listener via the update listener - it's already in initEditor
+  // So we store this callback externally
+  _selectionChangeFn = fn;
+}
+
+let _selectionChangeFn = null;
+export function _getSelectionChangeFn() { return _selectionChangeFn; }

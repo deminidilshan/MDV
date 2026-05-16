@@ -1,0 +1,81 @@
+/* ===== FLOATING FORMAT TOOLBAR ===== */
+.format-toolbar {
+  position: fixed;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.03);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px) scale(0.96);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.format-toolbar.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+.format-toolbar.pinned {
+  position: fixed;
+  top: calc(var(--titlebar-h) + var(--topbar-h) + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.tb-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-ui);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.tb-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.tb-btn.active {
+  color: var(--accent);
+  background: rgba(88,166,255,0.1);
+}
+.tb-btn span {
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.tb-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+/* Close button */
+.tb-btn[data-action="close"] {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.tb-btn[data-action="close"]:hover {
+  color: var(--text-primary);
+}
