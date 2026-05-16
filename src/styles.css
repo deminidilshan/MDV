@@ -280,6 +280,7 @@ body {
 .setting-group { margin-bottom: 20px; }
 .setting-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
 .setting-label span { font-weight: 400; color: var(--text-muted); text-transform: none; letter-spacing: 0; }
+.setting-hint { font-size: 11px; color: var(--text-muted); margin: -8px 0 16px; }
 
 /* Theme grid */
 .theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

@@ -1,7 +1,9 @@
-// main.js — App orchestrator (v3 with 4 views, toolbar, editable preview)
+// main.js — App orchestrator (v4 with Docs Mode + CSV Viewer)
 import './styles.css';
 import './pro-preview.css';
 import './toolbar.css';
+import './docs-mode.css';
+import './csv-viewer.css';
 import 'highlight.js/styles/github-dark.min.css';
 import { initEditor, setContent, getContent, onChange, onCursor, getWordCount, focus, wrapSelection, insertAtLineStart, onSelectionChange } from './editor.js';
 import { initPreview, renderMarkdown, renderImmediate, setEditable, onEditableChange } from './preview.js';
@@ -9,23 +11,30 @@ import { loadSettings, getSettings, updateSetting, toggleMode, getThemes } from 
 import { newFile, openFile, openFilePath, saveFile, saveFileAs, markDirty, onFileChange } from './fileManager.js';
 import { enhanceProPreview, cleanupProPreview } from './pro-preview.js';
 import { initToolbar, showToolbar, hideToolbar } from './toolbar.js';
+import { initDocsMode, setDocsContent, getMarkdown as getDocsMarkdown, onDocsChange } from './docs-mode.js';
+import { initCsvViewer, openCsv, closeCsv, isCsvOpen } from './csv-viewer.js';
 
 const listen = window.__TAURI__?.event?.listen;
 
 // ===== State =====
 let currentView = 'source'; // source | preview | split | pro
+let simpleMode = true; // true = markdown editor, false = docs mode
 let syncingFromPreview = false;
+let syncingFromDocs = false;
 
 // ===== DOM =====
 const editorPane = document.getElementById('editor-pane');
 const previewPane = document.getElementById('preview-pane');
 const previewContent = document.getElementById('preview-content');
 const divider = document.getElementById('divider');
+const docsPane = document.getElementById('docs-mode-pane');
+const csvViewer = document.getElementById('csv-viewer');
 const fileNameEl = document.getElementById('file-name');
 const unsavedDot = document.getElementById('unsaved-dot');
 const statCursor = document.getElementById('stat-cursor');
 const statWords = document.getElementById('stat-words');
 const statReadtime = document.getElementById('stat-readtime');
+const statFiletype = document.getElementById('stat-filetype');
 const viewToggle = document.getElementById('view-toggle');
 const btnMode = document.getElementById('btn-mode');
 const btnSettings = document.getElementById('btn-settings');
@@ -35,61 +44,82 @@ const settingsClose = document.getElementById('settings-close');
 const iconMoon = document.getElementById('icon-moon');
 const iconSun = document.getElementById('icon-sun');
 const dropzone = document.getElementById('dropzone');
+const workspace = document.getElementById('workspace');
 
 // ===== Init =====
 const settings = loadSettings();
+simpleMode = settings.simpleMode !== false;
 initEditor(editorPane, { lineNumbers: settings.lineNumbers, wordWrap: settings.wordWrap });
 initPreview(previewContent);
+initDocsMode(docsPane);
+initCsvViewer(csvViewer);
+initToolbar({ wrapSelection, insertAtLineStart });
 updateModeIcon(settings.mode);
 
-// Init toolbar
-initToolbar({ wrapSelection, insertAtLineStart });
-
-// Toolbar shows on text selection
+// Toolbar on text selection
 onSelectionChange((info) => {
-  if (info.hasSelection) {
-    showToolbar(info.x, info.y);
-  } else {
-    hideToolbar();
-  }
+  if (simpleMode && info.hasSelection) showToolbar(info.x, info.y);
+  else hideToolbar();
 });
 
 // ===== Editor events =====
 onChange((text) => {
-  if (syncingFromPreview) return;
+  if (syncingFromPreview || syncingFromDocs) return;
   markDirty();
   if (currentView !== 'source') {
     renderMarkdown(text);
-    if (currentView === 'pro') {
-      setTimeout(() => enhanceProPreview(previewContent), 100);
-    }
+    if (currentView === 'pro') setTimeout(() => enhanceProPreview(previewContent), 100);
   }
   updateStats();
 });
 
-onCursor((line, col) => {
-  statCursor.textContent = `Ln ${line}, Col ${col}`;
-});
+onCursor((line, col) => { statCursor.textContent = `Ln ${line}, Col ${col}`; });
 
-// Editable preview → sync back to editor
+// Editable preview → sync to editor
 onEditableChange((md) => {
   syncingFromPreview = true;
-  setContent(md);
-  markDirty();
-  updateStats();
+  setContent(md); markDirty(); updateStats();
   setTimeout(() => { syncingFromPreview = false; }, 50);
+});
+
+// Docs mode → sync to editor
+onDocsChange((md) => {
+  syncingFromDocs = true;
+  setContent(md); markDirty(); updateStats();
+  setTimeout(() => { syncingFromDocs = false; }, 50);
 });
 
 onFileChange(({ path, dirty }) => {
   const name = path ? path.split('/').pop() : 'Untitled';
-  fileNameEl.textContent = name;
-  fileNameEl.title = path || 'Untitled';
+  fileNameEl.textContent = name; fileNameEl.title = path || 'Untitled';
   unsavedDot.classList.toggle('hidden', !dirty);
   document.title = `${dirty ? '● ' : ''}${name} — MDV`;
 });
 
-// ===== View switching =====
+// ===== Mode switching (Simple ↔ Docs) =====
+function applySimpleMode(isSimple) {
+  simpleMode = isSimple;
+
+  if (isSimple) {
+    // Show markdown editor views
+    docsPane.style.display = 'none';
+    viewToggle.style.display = 'flex';
+    setView(currentView);
+  } else {
+    // Show Docs mode — hide all markdown views
+    editorPane.classList.add('hidden');
+    previewPane.classList.add('hidden');
+    divider.classList.add('hidden');
+    viewToggle.style.display = 'none';
+    docsPane.style.display = 'flex';
+    setDocsContent(getContent());
+    hideToolbar();
+  }
+}
+
+// ===== View switching (simple mode only) =====
 function setView(mode) {
+  if (!simpleMode) return;
   currentView = mode;
   const showEditor = mode === 'source' || mode === 'split';
   const showPreview = mode !== 'source';
@@ -97,23 +127,19 @@ function setView(mode) {
   editorPane.classList.toggle('hidden', !showEditor);
   previewPane.classList.toggle('hidden', !showPreview);
   divider.classList.toggle('hidden', mode !== 'split');
+  docsPane.style.display = 'none';
 
   viewToggle.querySelectorAll('.vt-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.view === mode);
   });
 
-  // Set preview editable only in "preview" mode (not pro)
   setEditable(mode === 'preview');
 
   if (showPreview) {
     renderImmediate(getContent());
-    if (mode === 'pro') {
-      setTimeout(() => enhanceProPreview(previewContent), 50);
-    } else {
-      cleanupProPreview(previewContent);
-    }
+    if (mode === 'pro') setTimeout(() => enhanceProPreview(previewContent), 50);
+    else cleanupProPreview(previewContent);
   }
-
   if (showEditor) focus();
 }
 
@@ -123,11 +149,7 @@ viewToggle.addEventListener('click', (e) => {
 });
 
 // ===== Dark/Light toggle =====
-btnMode.addEventListener('click', () => {
-  const mode = toggleMode();
-  updateModeIcon(mode);
-});
-
+btnMode.addEventListener('click', () => { const m = toggleMode(); updateModeIcon(m); });
 function updateModeIcon(mode) {
   iconMoon.classList.toggle('hidden', mode === 'light');
   iconSun.classList.toggle('hidden', mode === 'dark');
@@ -140,21 +162,31 @@ function openSettings() {
   requestAnimationFrame(() => settingsPanel.classList.add('open'));
   populateSettings();
 }
-
 function closeSettings() {
   settingsPanel.classList.remove('open');
-  setTimeout(() => {
-    settingsPanel.classList.add('hidden');
-    settingsOverlay.classList.add('hidden');
-  }, 300);
+  setTimeout(() => { settingsPanel.classList.add('hidden'); settingsOverlay.classList.add('hidden'); }, 300);
 }
-
 btnSettings.addEventListener('click', openSettings);
 settingsClose.addEventListener('click', closeSettings);
 settingsOverlay.addEventListener('click', closeSettings);
 
 function populateSettings() {
   const s = getSettings();
+
+  // Simple Mode toggle
+  const smToggle = document.getElementById('set-simplemode');
+  smToggle.checked = s.simpleMode !== false;
+  smToggle.onchange = (e) => {
+    updateSetting('simpleMode', e.target.checked);
+    applySimpleMode(e.target.checked);
+    // When switching back to simple, sync docs content
+    if (e.target.checked) {
+      const md = getDocsMarkdown();
+      if (md.trim()) setContent(md);
+    }
+  };
+
+  // Theme grid
   const grid = document.getElementById('theme-grid');
   grid.innerHTML = '';
   getThemes().forEach(t => {
@@ -207,21 +239,19 @@ function updateStats() {
 let isDragging = false;
 divider.addEventListener('mousedown', (e) => {
   isDragging = true; divider.classList.add('dragging');
-  document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
-  e.preventDefault();
+  document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; e.preventDefault();
 });
 document.addEventListener('mousemove', (e) => {
   if (!isDragging) return;
-  const rect = document.getElementById('workspace').getBoundingClientRect();
+  const rect = workspace.getBoundingClientRect();
   const clamped = Math.max(20, Math.min(80, ((e.clientX - rect.left) / rect.width) * 100));
-  editorPane.style.flex = `0 0 ${clamped}%`;
-  previewPane.style.flex = `0 0 ${100 - clamped}%`;
+  editorPane.style.flex = `0 0 ${clamped}%`; previewPane.style.flex = `0 0 ${100 - clamped}%`;
 });
 document.addEventListener('mouseup', () => {
   if (isDragging) { isDragging = false; divider.classList.remove('dragging'); document.body.style.cursor = ''; document.body.style.userSelect = ''; }
 });
 
-// ===== Drag & Drop =====
+// ===== Drag & Drop (supports .md AND .csv) =====
 let dragCounter = 0;
 document.addEventListener('dragenter', (e) => { e.preventDefault(); dragCounter++; if (dropzone) dropzone.classList.add('active'); });
 document.addEventListener('dragleave', (e) => { e.preventDefault(); dragCounter--; if (dragCounter <= 0) { dragCounter = 0; if (dropzone) dropzone.classList.remove('active'); } });
@@ -229,21 +259,44 @@ document.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfe
 document.addEventListener('drop', async (e) => {
   e.preventDefault(); dragCounter = 0; if (dropzone) dropzone.classList.remove('active');
   const files = e.dataTransfer?.files;
-  if (files?.length > 0 && files[0].name.match(/\.(md|markdown|mdown|mkd|txt)$/i)) {
-    const text = await files[0].text();
+  if (!files?.length) return;
+  const file = files[0];
+
+  // CSV file → open CSV viewer
+  if (file.name.match(/\.csv$/i)) {
+    const text = await file.text();
+    openCsv(text, file.name);
+    statFiletype.textContent = 'CSV';
+    fileNameEl.textContent = file.name;
+    document.title = `${file.name} — MDV`;
+    return;
+  }
+
+  // Markdown file
+  if (file.name.match(/\.(md|markdown|mdown|mkd|txt)$/i)) {
+    if (isCsvOpen()) closeCsv();
+    const text = await file.text();
     setContent(text); markDirty();
-    fileNameEl.textContent = files[0].name; document.title = `${files[0].name} — MDV`;
+    if (!simpleMode) setDocsContent(text);
+    fileNameEl.textContent = file.name;
+    statFiletype.textContent = 'Markdown';
+    document.title = `${file.name} — MDV`;
   }
 });
 
 // ===== Keyboard shortcuts =====
 document.addEventListener('keydown', (e) => {
   const isMod = e.metaKey || e.ctrlKey;
-  if (e.key === 'Escape') { if (!settingsPanel.classList.contains('hidden')) closeSettings(); return; }
-  if (isMod && e.key === 'b') { e.preventDefault(); wrapSelection('**', '**'); }
-  if (isMod && e.key === 'i') { e.preventDefault(); wrapSelection('*', '*'); }
-  if (isMod && e.key === 'k') { e.preventDefault(); wrapSelection('[', '](url)'); }
-  if (isMod && e.shiftKey && e.key === 'K') { e.preventDefault(); wrapSelection('\n```\n', '\n```\n'); }
+  if (e.key === 'Escape') {
+    if (isCsvOpen()) { closeCsv(); statFiletype.textContent = 'Markdown'; return; }
+    if (!settingsPanel.classList.contains('hidden')) { closeSettings(); return; }
+  }
+  if (simpleMode) {
+    if (isMod && e.key === 'b') { e.preventDefault(); wrapSelection('**', '**'); }
+    if (isMod && e.key === 'i') { e.preventDefault(); wrapSelection('*', '*'); }
+    if (isMod && e.key === 'k') { e.preventDefault(); wrapSelection('[', '](url)'); }
+    if (isMod && e.shiftKey && e.key === 'K') { e.preventDefault(); wrapSelection('\n```\n', '\n```\n'); }
+  }
 });
 
 // ===== Scroll sync =====
@@ -273,8 +326,8 @@ async function handleMenuEvent(eventId) {
   switch (eventId) {
     case 'new': await newFile(getContent, setContent); break;
     case 'open': await openFile(setContent); break;
-    case 'save': await saveFile(getContent); break;
-    case 'save-as': await saveFileAs(getContent); break;
+    case 'save': await saveFile(simpleMode ? getContent : getDocsMarkdown); break;
+    case 'save-as': await saveFileAs(simpleMode ? getContent : getDocsMarkdown); break;
     case 'view-source': setView('source'); break;
     case 'view-preview': setView('preview'); break;
     case 'view-split': setView('split'); break;
@@ -289,6 +342,7 @@ if (listen) {
 }
 
 // ===== Init =====
-setView('source');
+applySimpleMode(simpleMode);
+if (simpleMode) setView('source');
 updateStats();
 document.title = 'MDV';

@@ -49,13 +49,17 @@
     <div id="preview-pane" class="pane hidden">
       <article id="preview-content" class="markdown-body"></article>
     </div>
+    <div id="docs-mode-pane"></div>
   </main>
+
+  <!-- CSV Viewer (hidden, activated by opening .csv) -->
+  <div id="csv-viewer"></div>
 
   <!-- Drag & drop overlay -->
   <div id="dropzone" class="dropzone">
     <div class="dropzone-inner">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
-      <p>Drop markdown file here</p>
+      <p>Drop .md or .csv file here</p>
     </div>
   </div>
 
@@ -75,6 +79,11 @@
       </button>
     </div>
     <div class="settings-body">
+      <div class="setting-group setting-toggle-row" style="padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--border-subtle)">
+        <label class="setting-label" style="font-size:13px">Simple Mode</label>
+        <label class="toggle"><input type="checkbox" id="set-simplemode" checked /><span class="toggle-slider"></span></label>
+      </div>
+      <p id="simple-mode-hint" class="setting-hint">ON = Markdown editor · OFF = Google Docs-like editor</p>
       <div class="setting-group">
         <label class="setting-label">Theme</label>
         <div id="theme-grid" class="theme-grid"></div>
