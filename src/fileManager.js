@@ -28,35 +28,33 @@ export async function newFile(getContent, setContent) {
   return true;
 }
 
-export async function openFile(setContent) {
+export async function openFile() {
   try {
     const selected = await open({
       multiple: false,
-      filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'txt'] }],
+      filters: [{ name: 'Supported Files', extensions: ['md', 'markdown', 'mdown', 'mkd', 'txt', 'csv'] }],
     });
     if (!selected) return false;
     const path = typeof selected === 'string' ? selected : selected.path;
     if (!path) return false;
     const content = await readTextFile(path);
-    setContent(content);
     currentFilePath = path;
     isDirty = false;
     notify();
-    return true;
+    return { path, content };
   } catch (e) {
     console.error('Open file error:', e);
     return false;
   }
 }
 
-export async function openFilePath(path, setContent) {
+export async function openFilePath(path) {
   try {
     const content = await readTextFile(path);
-    setContent(content);
     currentFilePath = path;
     isDirty = false;
     notify();
-    return true;
+    return { path, content };
   } catch (e) {
     console.error('Open file path error:', e);
     return false;

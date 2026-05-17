@@ -3,6 +3,7 @@ import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
 import TurndownService from 'turndown';
+import { gfm } from 'turndown-plugin-gfm';
 
 const marked = new Marked(
   markedHighlight({
@@ -24,6 +25,7 @@ const turndown = new TurndownService({
   codeBlockStyle: 'fenced',
   bulletListMarker: '-',
 });
+turndown.use(gfm);
 
 let previewEl = null;
 let debounceTimer = null;

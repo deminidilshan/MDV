@@ -4,6 +4,7 @@ import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
 import TurndownService from 'turndown';
+import { gfm } from 'turndown-plugin-gfm';
 
 const marked = new Marked(
   markedHighlight({
@@ -19,6 +20,7 @@ marked.setOptions({ gfm: true, breaks: true });
 const turndown = new TurndownService({
   headingStyle: 'atx', codeBlockStyle: 'fenced', bulletListMarker: '-',
 });
+turndown.use(gfm);
 
 // Toolbar actions
 const TOOLBAR = [

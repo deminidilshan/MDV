@@ -123,11 +123,14 @@ body {
   padding: 0 16px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
-  -webkit-app-region: drag;
   transition: background var(--transition);
   position: relative; z-index: 50;
+  -webkit-app-region: drag;
 }
-#topbar button, #topbar select { -webkit-app-region: no-drag; }
+#topbar button, #topbar select, #topbar .vt-btn { 
+  cursor: pointer; 
+  -webkit-app-region: no-drag;
+}
 .topbar-left { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
 .topbar-center { display: flex; justify-content: center; flex-shrink: 0; }
 .topbar-right { display: flex; align-items: center; gap: 4px; flex: 1; justify-content: flex-end; }

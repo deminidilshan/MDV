@@ -13,6 +13,7 @@ import { enhanceProPreview, cleanupProPreview } from './pro-preview.js';
 import { initToolbar, showToolbar, hideToolbar } from './toolbar.js';
 import { initDocsMode, setDocsContent, getMarkdown as getDocsMarkdown, onDocsChange } from './docs-mode.js';
 import { initCsvViewer, openCsv, closeCsv, isCsvOpen } from './csv-viewer.js';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 const listen = window.__TAURI__?.event?.listen;
 
@@ -253,34 +254,45 @@ document.addEventListener('mouseup', () => {
 
 // ===== Drag & Drop (supports .md AND .csv) =====
 let dragCounter = 0;
-document.addEventListener('dragenter', (e) => { e.preventDefault(); dragCounter++; if (dropzone) dropzone.classList.add('active'); });
-document.addEventListener('dragleave', (e) => { e.preventDefault(); dragCounter--; if (dragCounter <= 0) { dragCounter = 0; if (dropzone) dropzone.classList.remove('active'); } });
-document.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
-document.addEventListener('drop', async (e) => {
-  e.preventDefault(); dragCounter = 0; if (dropzone) dropzone.classList.remove('active');
-  const files = e.dataTransfer?.files;
-  if (!files?.length) return;
-  const file = files[0];
+getCurrentWindow().onDragDropEvent(async (event) => {
+  const type = event.payload.type;
+  if (type === 'enter') {
+    dragCounter++;
+    if (dropzone) dropzone.classList.add('active');
+  } else if (type === 'leave' || type === 'drop') {
+    dragCounter = 0;
+    if (dropzone) dropzone.classList.remove('active');
+    
+    if (type === 'drop') {
+      const paths = event.payload.paths;
+      if (!paths || !paths.length) return;
+      const path = paths[0];
+      
+      const { readTextFile } = await import('@tauri-apps/plugin-fs');
+      try {
+        const text = await readTextFile(path);
+        const name = path.split('/').pop() || path.split('\\').pop() || 'Untitled';
+        
+        if (path.match(/\.csv$/i)) {
+          openCsv(text, name);
+          statFiletype.textContent = 'CSV';
+          fileNameEl.textContent = name;
+          document.title = `${name} — MDV`;
+          return;
+        }
 
-  // CSV file → open CSV viewer
-  if (file.name.match(/\.csv$/i)) {
-    const text = await file.text();
-    openCsv(text, file.name);
-    statFiletype.textContent = 'CSV';
-    fileNameEl.textContent = file.name;
-    document.title = `${file.name} — MDV`;
-    return;
-  }
-
-  // Markdown file
-  if (file.name.match(/\.(md|markdown|mdown|mkd|txt)$/i)) {
-    if (isCsvOpen()) closeCsv();
-    const text = await file.text();
-    setContent(text); markDirty();
-    if (!simpleMode) setDocsContent(text);
-    fileNameEl.textContent = file.name;
-    statFiletype.textContent = 'Markdown';
-    document.title = `${file.name} — MDV`;
+        if (path.match(/\.(md|markdown|mdown|mkd|txt)$/i)) {
+          if (isCsvOpen()) closeCsv();
+          setContent(text); markDirty();
+          if (!simpleMode) setDocsContent(text);
+          fileNameEl.textContent = name;
+          statFiletype.textContent = 'Markdown';
+          document.title = `${name} — MDV`;
+        }
+      } catch (e) {
+        console.error('Drag & Drop Error:', e);
+      }
+    }
   }
 });
 
@@ -325,7 +337,11 @@ setTimeout(setupScrollSync, 500);
 async function handleMenuEvent(eventId) {
   switch (eventId) {
     case 'new': await newFile(getContent, setContent); break;
-    case 'open': await openFile(setContent); break;
+    case 'open': {
+      const res = await openFile();
+      if (res) handleOpenedFile(res.path, res.content);
+      break;
+    }
     case 'save': await saveFile(simpleMode ? getContent : getDocsMarkdown); break;
     case 'save-as': await saveFileAs(simpleMode ? getContent : getDocsMarkdown); break;
     case 'view-source': setView('source'); break;
@@ -336,9 +352,26 @@ async function handleMenuEvent(eventId) {
   }
 }
 
+function handleOpenedFile(path, text) {
+  const name = path.split('/').pop() || path.split('\\').pop() || 'Untitled';
+  if (path.match(/\.csv$/i)) {
+    openCsv(text, name);
+    statFiletype.textContent = 'CSV';
+  } else {
+    if (isCsvOpen()) closeCsv();
+    setContent(text); 
+    if (!simpleMode) setDocsContent(text);
+    statFiletype.textContent = 'Markdown';
+  }
+  document.title = `${name} — MDV`;
+}
+
 if (listen) {
   listen('menu-event', (event) => handleMenuEvent(event.payload));
-  listen('open-file', (event) => openFilePath(event.payload, setContent));
+  listen('open-file', async (event) => {
+    const res = await openFilePath(event.payload);
+    if (res) handleOpenedFile(res.path, res.content);
+  });
 }
 
 // ===== Init =====
